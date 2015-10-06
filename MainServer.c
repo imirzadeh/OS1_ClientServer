@@ -14,7 +14,7 @@ struct client{
         int serve_port;
         int file_count;
         int load;
-        char files[10][25];
+        char files[10][50];
 };
 
 void init_clients(struct client(*all_clients)[MAXCLIENTS]){
@@ -29,16 +29,14 @@ void init_clients(struct client(*all_clients)[MAXCLIENTS]){
     }
 }
 
+//void create_client(int client_port_no,)
 void add_file_to_client(int client_port_no,char* file_name,struct client(*all_clients)[MAXCLIENTS]){
-    int i,j;
+    int i;
     for(i=0;i<MAXCLIENTS;i++){
         if( (*all_clients)[i].serve_port == client_port_no ) {
-            for(j=0;i<10;j++){
-                if( (*all_clients)[i].files[j][0] == '-' ){
-                    strcpy((*all_clients)[i].files[j],file_name);
+                    strcpy((*all_clients)[i].files[(*all_clients)[i].file_count],file_name);
+                    (*all_clients[i]).file_count += 1;
                     break;
-                }
-            }
         }
     }
 }
@@ -47,6 +45,24 @@ int main(int argc, char *argv[]) {
 
     struct client all_clients[MAXCLIENTS];
     init_clients(&all_clients);
+    all_clients[3].serve_port = 9090;
+    all_clients[0].serve_port = 8080;
+    add_file_to_client(8080,"kosse bibit.pdf",&all_clients);
+    add_file_to_client(8080,"kosse bibit.mp3",&all_clients);
+    add_file_to_client(9090,"porn.mp4",&all_clients);
+    int k,l;
+
+    for(k=0;k<MAXCLIENTS;k++){
+        printf("%d\n",(all_clients)[k].serve_port);
+        for(l=0;l<10;l++){
+                if( (all_clients)[k].files[l][0] != '-' ){
+                    printf("%s\n",(all_clients)[k].files[l]);
+                }
+            }
+        printf("################\n");
+    }
+    int kir;
+    scanf("%d",&kir);
 
     /* master file descriptor list */
     fd_set master;
