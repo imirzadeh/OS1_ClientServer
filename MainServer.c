@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -8,13 +9,13 @@
 #include <arpa/inet.h>
 /* port we're listening on */
 #define PORT 2020
-#define MAXCLIENTS 10
+#define MAXCLIENTS 3
 
 struct client{
         int serve_port;
         int file_count;
         int load;
-        char files[10][50];
+        char files[10][25];
 };
 
 void init_clients(struct client(*all_clients)[MAXCLIENTS]){
@@ -29,9 +30,44 @@ void init_clients(struct client(*all_clients)[MAXCLIENTS]){
     }
 }
 
-//void create_client(int client_port_no,)
+bool exist_client(int client_port_no,struct client(*all_clients)[MAXCLIENTS]){
+    int i;
+    for(i=0;i<MAXCLIENTS;i++){
+        if((*all_clients)[i].serve_port == client_port_no){
+            return true;
+        }
+    }
+    return false;
+}
+
+void create_client(int client_port_no,struct client(*all_clients)[MAXCLIENTS]){
+    int i;
+    if (exist_client(client_port_no,&(*all_clients))){
+        return;
+    }
+    for(i=0;i<MAXCLIENTS;i++){
+        if ((*all_clients)[i].serve_port == -1){
+            (*all_clients)[i].serve_port = client_port_no;
+            break;
+        }
+    }
+}
+
+void inc_load(int client_port_no,struct client(*all_clients)[MAXCLIENTS]){
+    int i;
+    for (i=0;i<MAXCLIENTS;i++){
+        if((*all_clients)[i].serve_port == client_port_no){
+            (*all_clients)[i].load += 1;
+        }
+    }
+}
+
 void add_file_to_client(int client_port_no,char* file_name,struct client(*all_clients)[MAXCLIENTS]){
     int i;
+    bool found = exist_client(client_port_no,&(*all_clients));
+    if(!found){
+        create_client(client_port_no,&(*all_clients));
+    }
     for(i=0;i<MAXCLIENTS;i++){
         if( (*all_clients)[i].serve_port == client_port_no ) {
                     strcpy((*all_clients)[i].files[(*all_clients)[i].file_count],file_name);
@@ -41,28 +77,77 @@ void add_file_to_client(int client_port_no,char* file_name,struct client(*all_cl
     }
 }
 
-int main(int argc, char *argv[]) {
-
-    struct client all_clients[MAXCLIENTS];
-    init_clients(&all_clients);
-    all_clients[3].serve_port = 9090;
-    all_clients[0].serve_port = 8080;
-    add_file_to_client(8080,"kosse bibit.pdf",&all_clients);
-    add_file_to_client(8080,"kosse bibit.mp3",&all_clients);
-    add_file_to_client(9090,"porn.mp4",&all_clients);
+void print_clients(struct client(*all_clients)[MAXCLIENTS]){
     int k,l;
-
     for(k=0;k<MAXCLIENTS;k++){
-        printf("%d\n",(all_clients)[k].serve_port);
+        printf("%d\n",(*all_clients)[k].serve_port);
         for(l=0;l<10;l++){
-                if( (all_clients)[k].files[l][0] != '-' ){
-                    printf("%s\n",(all_clients)[k].files[l]);
+                if( (*all_clients)[k].files[l][0] != '-' ){
+                    printf("%s\n",(*all_clients)[k].files[l]);
                 }
             }
         printf("################\n");
     }
-    int kir;
-    scanf("%d",&kir);
+}
+
+int find_best_server(char* filename,struct client(*all_clients)[MAXCLIENTS]){
+    int min_load = 100;
+    int best_server = -1;
+    int i,j;
+    for(i=0;i<MAXCLIENTS;i++){
+        for(j=0;j<10;j++){
+            //printf("###\n");
+            //printf("%s\n%s\n",(*all_clients)[i].files[j],filename);
+            //printf("###\n");
+            if(strcmp((*all_clients)[i].files[j],filename) == 0){
+                if((*all_clients)[i].load < min_load){
+                    min_load = (*all_clients)[i].load;
+                    best_server =(*all_clients)[i].serve_port;
+                }
+            }
+        }
+    }
+    return best_server;
+}
+
+int response(char* buf,struct client(*all_clients)[MAXCLIENTS]){
+    int end=strlen(buf);
+    //for(end=0;end<1024;end++){
+    //    if(buf[end]=='\0')
+    //        break;
+    //}
+    //int port_no = atoi(buf[8])*1000 + atoi(buf[9])*100 + atoi(buf[10])*10+atoi(buf[11]);
+    //Lookup
+    char filename[1024];
+    int i;
+    if(buf[0] == 'L'){
+        for(i=7;i<end;i++){
+            filename[i-7]=buf[i];
+        }
+    }
+    filename[end]='\0';
+    int res = find_best_server(filename,&(*all_clients));
+    inc_load(res,&(*all_clients));
+    return res;
+    // Register
+}
+
+int main(int argc, char *argv[]) {
+
+    struct client all_clients[MAXCLIENTS];
+    init_clients(&all_clients);
+
+    all_clients[0].serve_port = 1000;
+    printf("exist 1000?,%d\n",exist_client(1000,&all_clients));
+    create_client(1000,&all_clients);
+    create_client(2000,&all_clients);
+    add_file_to_client(1000,"kirdozd.mp3",&all_clients);
+    add_file_to_client(1000,"kiri\0",&all_clients);
+    add_file_to_client(2000,"kirdozd.mp3",&all_clients);
+    printf("best server is : %d\n",response("Lookup kirdozd.mp3",&all_clients));
+    printf("best server is : %d\n",response("Lookup kirdozd.mp3",&all_clients));
+    printf("best server is : %d\n",response("Lookup kirdozd.mp3",&all_clients));
+    printf("best server is : %d\n",response("Lookup sirdozd.mp3",&all_clients));
 
     /* master file descriptor list */
     fd_set master;
