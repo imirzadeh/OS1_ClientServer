@@ -110,9 +110,15 @@ int find_best_server(char* filename,struct client(*all_clients)[MAXCLIENTS]){
     return best_server;
 }
 
-int response(char* buf,struct client(*all_clients)[MAXCLIENTS]){
-    int end=strlen(buf);
+char* response(char* buf,struct client(*all_clients)[MAXCLIENTS]){
 
+    int end=0;
+    for(end=0;end<strlen(buf);end++){
+        if (buf[end]=='\0' || buf[end]=='\n')
+            break;
+    }
+
+    char answer[1024];
     //Lookup
     char filename[1024];
     int i;
@@ -124,7 +130,8 @@ int response(char* buf,struct client(*all_clients)[MAXCLIENTS]){
         int res = find_best_server(filename,&(*all_clients));
         inc_load(res,&(*all_clients));
         // TODO : add file to client downloaded list
-        return res;
+        sprintf(answer,"%d",res);
+        //return res;
     }
 
     // Register
@@ -135,12 +142,15 @@ int response(char* buf,struct client(*all_clients)[MAXCLIENTS]){
         }
         filename[end-15]='\0';
         add_file_to_client(port_no,filename,&(*all_clients));
-        return 0;
+        sprintf(answer,"%d",0);
+        //return 0;
     }
 
     else{
-        return -2;
+        //return -2;
+        sprintf(answer,"%d",-2);
     }
+    return (char*)answer;
 }
 
 int main(int argc, char *argv[]) {
@@ -149,23 +159,23 @@ int main(int argc, char *argv[]) {
     init_clients(&all_clients);
 
     all_clients[0].serve_port = 1000;
-    printf("exist 1000?,%d\n",exist_client(1000,&all_clients));
-    create_client(1000,&all_clients);
-    create_client(2000,&all_clients);
-    add_file_to_client(1000,"kirdozd.mp3",&all_clients);
-    add_file_to_client(1000,"kiri\0",&all_clients);
-    add_file_to_client(2000,"kirdozd.mp3",&all_clients);
-    printf("best server is : %d\n",response("Lookup kirdozd.mp3",&all_clients));
-    printf("best server is : %d\n",response("Lookup kirdozd.mp3",&all_clients));
-    printf("best server is : %d\n",response("Lookup kirdozd.mp3",&all_clients));
-    printf("best server is : %d\n",response("Lookup sirdozd.mp3",&all_clients));
-    printf("Registering : %d\n",response("Register 12345 sirdozd.mp3",&all_clients));
-    printf("Registering : %d\n",response("Register 56789 sirdozd.mp3",&all_clients));
-    printf("Registering : %d\n",response("Register 11111 sirdozd.mp3",&all_clients));
-    printf("best server is : %d\n",response("Lookup sirdozd.mp3",&all_clients));
-    printf("best server is : %d\n",response("Lookup sirdozd.mp3",&all_clients));
-    printf("best server is : %d\n",response("Lookup sirdozd.mp3",&all_clients));
-    printf("best server is : %d\n",response("Lookup sirdozd.mp3",&all_clients));
+    //printf("exist 1000?,%d\n",exist_client(1000,&all_clients));
+    //create_client(1000,&all_clients);
+    //create_client(2000,&all_clients);
+    //add_file_to_client(1000,"kirdozd.mp3",&all_clients);
+    //add_file_to_client(1000,"kiri\0",&all_clients);
+    //add_file_to_client(2000,"kirdozd.mp3",&all_clients);
+    //printf("best server is : %s\n",response("Lookup kirdozd.mp3",&all_clients));
+    //printf("best server is : %s\n",response("Lookup kirdozd.mp3",&all_clients));
+    //printf("best server is : %s\n",response("Lookup kirdozd.mp3",&all_clients));
+    //printf("best server is : %s\n",response("Lookup sirdozd.mp3",&all_clients));
+    //printf("Registering : %s\n",response("Register 12345 sirdozd.mp3",&all_clients));
+    //printf("Registering : %s\n",response("Register 56789 sirdozd.mp3",&all_clients));
+    //printf("Registering : %s\n",response("Register 11111 sirdozd.mp3",&all_clients));
+    //printf("best server is : %s\n",response("Lookup sirdozd.mp3",&all_clients));
+    //printf("best server is : %s\n",response("Lookup sirdozd.mp3",&all_clients));
+    //printf("best server is : %s\n",response("Lookup sirdozd.mp3",&all_clients));
+    //printf("best server is : %s\n",response("Lookup sirdozd.mp3",&all_clients));
     /* master file descriptor list */
     fd_set master;
     /* temp file descriptor list for select() */
@@ -280,7 +290,7 @@ int main(int argc, char *argv[]) {
                             if(FD_ISSET(j, &master)) {
                                 /* except the listener and ourselves */
                                 if(j != listener && j == i) {
-                                    if(send(j, buf, nbytes, 0) == -1)
+                                    if(send(j,response(buf,&all_clients), nbytes, 0) == -1)
                                         perror("send() error lol!");
                                 }
                             }

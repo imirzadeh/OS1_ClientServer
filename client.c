@@ -23,6 +23,7 @@ int main(int argc, char *argv[])
        exit(0);
     }
     portno = atoi(argv[2]);
+    int serve_port = atoi(argv[3]);
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0)
         error("ERROR opening socket");
