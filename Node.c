@@ -10,9 +10,13 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
+int get_download_server(char* buf){
+    int ans=0;
+    ans = (buf[9]-'0')*10000 + (buf[10]-'0')*1000 + (buf[11]-'0')*100 + (buf[12]-'0')*10 + (buf[13]-'0');
+    return ans;
+}
+
 int main(int argc, char *argv[]) {
-
-
     int lookup_sockfd,n;
     int lookup_server_port;
 
@@ -82,6 +86,9 @@ int main(int argc, char *argv[]) {
     serveraddr.sin_addr.s_addr = INADDR_ANY;
     serveraddr.sin_port = htons(my_portno);
     memset(&(serveraddr.sin_zero), '\0', 8);
+
+
+
 
     if(bind(listener, (struct sockaddr *)&serveraddr, sizeof(serveraddr)) == -1) {
         perror("Server-bind() error lol!");
@@ -162,7 +169,26 @@ int main(int argc, char *argv[]) {
                                             perror("could not connect to Lookup server");
                                     }
                                     else if(buf[0]=='D'){
-                                        int aa=2;
+                                            if(j==0){
+                                                struct sockaddr_in download_server;
+                                                int dl_server_port = get_download_server(buf);
+                                                int dl_sockfd = socket(AF_INET, SOCK_STREAM, 0);
+                                                if (dl_sockfd < 0)
+                                                    perror("ERROR opening socket");
+                                                bzero((char *) &download_server, sizeof(download_server));
+                                                download_server.sin_family = AF_INET;
+                                                download_server.sin_addr.s_addr = INADDR_ANY;
+                                                download_server.sin_port = htons(dl_server_port);
+                                                if (connect(dl_sockfd ,(struct sockaddr *)&download_server,sizeof(download_server)) < 0)
+                                                    perror("ERROR connecting");
+                                                if((send(dl_sockfd,buf, nbytes,0)) == -1)
+                                                    perror("could not connect to Download server");
+                                                FD_SET(dl_sockfd,&master);
+                                                }
+                                            else{
+                                                if((write(0,"salamalekom", nbytes)) == -1)
+                                                    perror("Terminal Write -- error lol!");
+                                            }
                                     }
                                     else{
                                         if((write(j,buf, nbytes)) == -1)
