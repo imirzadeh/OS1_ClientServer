@@ -235,6 +235,7 @@ int main(int argc, char *argv[]) {
 
     /* add the listener to the master set */
     FD_SET(listener, &master);
+    //FD_SET(STDIN_FILENO,&master);
     /* keep track of the biggest file descriptor */
     fdmax = listener; /* so far, it's this one*/
     printf("listerner = %d",listener);

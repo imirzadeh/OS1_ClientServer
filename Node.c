@@ -160,13 +160,9 @@ int main(int argc, char *argv[]) {
                                     //printf("hellllo on terminal");
                                     send(j,"You wrote in Terminal!\0",255,0);
                                 } */
-                                if(j==0){
-                                    if((send(j,buf, nbytes, 0)) == -1)
-                                        perror("send() ## error lol!");
-                                }
                                 if(j != listener && j == i) {
                                     //if(send(j,response(buf,&all_clients), nbytes, 0) == -1)
-                                    if((send(j,buf, nbytes, 0)) == -1)
+                                    if((write(j,buf, nbytes)) == -1)
                                         perror("send() -- error lol!");
                                 }
                             }
