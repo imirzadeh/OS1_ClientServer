@@ -9,13 +9,13 @@
 #include <arpa/inet.h>
 /* port we're listening on */
 #define PORT 2020
-#define MAXCLIENTS 10
+#define MAXCLIENTS 3
 
 struct client{
         int serve_port;
         int file_count;
         int load;
-        char files[10][25];
+        char files[10][20];
 };
 
 void init_clients(struct client(*all_clients)[MAXCLIENTS]){
@@ -71,7 +71,7 @@ void add_file_to_client(int client_port_no,char* file_name,struct client(*all_cl
     for(i=0;i<MAXCLIENTS;i++){
         if( (*all_clients)[i].serve_port == client_port_no ) {
                     strcpy((*all_clients)[i].files[(*all_clients)[i].file_count],file_name);
-                    (*all_clients)[i].file_count += 1;
+                    (*all_clients[i]).file_count += 1;
                     break;
         }
     }
@@ -90,15 +90,16 @@ void print_clients(struct client(*all_clients)[MAXCLIENTS]){
     }
 }
 
+bool str_cmp(char* s1,char* s2){
+    return true;
+}
+
 int find_best_server(char* filename,struct client(*all_clients)[MAXCLIENTS]){
     int min_load = 100;
     int best_server = -1;
     int i,j;
     for(i=0;i<MAXCLIENTS;i++){
         for(j=0;j<10;j++){
-            //printf("###\n");
-            //printf("%s\n%s\n",(*all_clients)[i].files[j],filename);
-            //printf("###\n");
             if(strcmp((*all_clients)[i].files[j],filename) == 0){
                 if((*all_clients)[i].load < min_load){
                     min_load = (*all_clients)[i].load;
@@ -111,36 +112,23 @@ int find_best_server(char* filename,struct client(*all_clients)[MAXCLIENTS]){
 }
 
 int response(char* buf,struct client(*all_clients)[MAXCLIENTS]){
-    int end=strlen(buf);
-
+    int end;
+    for(end=0;end<1024;end++){
+        if(buf[end]=='\0')
+            break;
+    }
+    int port_no = atoi(buf[8])*1000 + atoi(buf[9])*100 + atoi(buf[10])*10+atoi(buf[11]);
     //Lookup
-    char filename[1024];
+    char* filename[1024];
     int i;
     if(buf[0] == 'L'){
         for(i=7;i<end;i++){
             filename[i-7]=buf[i];
         }
-        filename[end-7]='\0';
-        int res = find_best_server(filename,&(*all_clients));
-        inc_load(res,&(*all_clients));
-        // TODO : add file to client downloaded list
-        return res;
     }
-
+    filename[end]='\0';
+    return find_best_server(filename,&(*all_clients));
     // Register
-    else if(buf[0]=='R'){
-        int port_no = (buf[9]-'0')*10000 + (buf[10]-'0')*1000 + (buf[11]-'0')*100+(buf[12]-'0')*10+(buf[13]-'0');
-        for(i=15;i<end;i++){
-            filename[i-15]=buf[i];
-        }
-        filename[end-15]='\0';
-        add_file_to_client(port_no,filename,&(*all_clients));
-        return 0;
-    }
-
-    else{
-        return -2;
-    }
 }
 
 int main(int argc, char *argv[]) {
@@ -149,23 +137,12 @@ int main(int argc, char *argv[]) {
     init_clients(&all_clients);
 
     all_clients[0].serve_port = 1000;
-    printf("exist 1000?,%d\n",exist_client(1000,&all_clients));
+    printf("exist 1000?,%d",exist_client(1000,&all_clients));
     create_client(1000,&all_clients);
     create_client(2000,&all_clients);
-    add_file_to_client(1000,"kirdozd.mp3",&all_clients);
+    add_file_to_client(1000,"kirdozd.mp3\0",&all_clients);
     add_file_to_client(1000,"kiri\0",&all_clients);
-    add_file_to_client(2000,"kirdozd.mp3",&all_clients);
-    printf("best server is : %d\n",response("Lookup kirdozd.mp3",&all_clients));
-    printf("best server is : %d\n",response("Lookup kirdozd.mp3",&all_clients));
-    printf("best server is : %d\n",response("Lookup kirdozd.mp3",&all_clients));
-    printf("best server is : %d\n",response("Lookup sirdozd.mp3",&all_clients));
-    printf("Registering : %d\n",response("Register 12345 sirdozd.mp3",&all_clients));
-    printf("Registering : %d\n",response("Register 56789 sirdozd.mp3",&all_clients));
-    printf("Registering : %d\n",response("Register 11111 sirdozd.mp3",&all_clients));
-    printf("best server is : %d\n",response("Lookup sirdozd.mp3",&all_clients));
-    printf("best server is : %d\n",response("Lookup sirdozd.mp3",&all_clients));
-    printf("best server is : %d\n",response("Lookup sirdozd.mp3",&all_clients));
-    printf("best server is : %d\n",response("Lookup sirdozd.mp3",&all_clients));
+    add_file_to_client(2000,"kirdozd.mp3\0",&all_clients);
     /* master file descriptor list */
     fd_set master;
     /* temp file descriptor list for select() */
