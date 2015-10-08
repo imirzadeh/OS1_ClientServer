@@ -111,7 +111,7 @@ int find_best_server(char* filename,struct client(*all_clients)[MAXCLIENTS]){
 }
 
 char* response(char* buf,struct client(*all_clients)[MAXCLIENTS]){
-
+    //TODO : implement sth like sprintf
     int end=0;
     for(end=0;end<strlen(buf);end++){
         if (buf[end]=='\0' || buf[end]=='\n')
