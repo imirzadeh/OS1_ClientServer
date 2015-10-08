@@ -155,17 +155,30 @@ int main(int argc, char *argv[]) {
                         for(j = 0; j <= fdmax; j++) {
                             /* send to everyone! */
                             if(FD_ISSET(j, &master)) {
-                                /* except the listener and ourselves */
-                                /* if(j==listener){
-                                    //printf("hellllo on terminal");
-                                    send(j,"You wrote in Terminal!\0",255,0);
-                                } */
-                                if(j != listener && j == i) {
-                                    //if(send(j,response(buf,&all_clients), nbytes, 0) == -1)
-                                    if((write(j,buf, nbytes)) == -1)
-                                        perror("send() -- error lol!");
+                                if(j != listener && j == i && j!=lookup_sockfd) {
+                                    //CLIENT MODE : TO CONNECT TO LOOKUP SERVER
+                                    if(buf[0]=='R' || buf[0]=='L'){
+                                        if((send(lookup_sockfd,buf, nbytes,0)) == -1)
+                                            perror("could not connect to Lookup server");
+                                    }
+                                    else if(buf[0]=='D'){
+                                        int aa=2;
+                                    }
+                                    else{
+                                        if((write(j,buf, nbytes)) == -1)
+                                            perror("send() -- error lol!");
+                                    }
                                 }
+
+                                else{
+                                    if(j==lookup_sockfd){
+                                        if((write(STDIN_FILENO,buf, nbytes)) == -1)
+                                            perror("send() -- error lol!");
+                                    }
+                                }
+
                             }
+                            //from server
                         }
                     }
                 }
