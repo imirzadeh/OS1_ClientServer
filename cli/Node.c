@@ -30,7 +30,6 @@ char* get_filename(char* buf){
         }
 
     }
-
     return (char*)filename;
 }
 
@@ -229,6 +228,8 @@ int main(int argc, char *argv[]) {
                                                   exit(1);
                                                 }
                                                 close(fd);
+                                                close(j);
+                                                FD_CLR(j,&master);
                                             }
                                     }
                                     else{
