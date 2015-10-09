@@ -1,0 +1,45 @@
+Download 12345 i
+an
+include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+/* port we're listening on */
+#define PORT 2020
+#define MAXCLIENTS 10
+
+struct client{
+        int serve_port;
+        int file_count;
+        int load;
+        char files[10][25];
+};
+
+void init_clients(struct client(*all_clients)[MAXCLIENTS]){
+    int i,j;
+    for(i=0; i<MAXCLIENTS; i++){
+        (*all_clients)[i].serve_port = -1;
+        (*all_clients)[i].file_count = 0;
+        (*all_clients)[i].load = 0;
+        for(j=0;j<10;j++){
+            (*all_clients)[i].files[j][0]='-';
+        }
+    }
+}
+
+bool exist_client(int client_port_no,struct client(*all_clients)[MAXCLIENTS]){
+    int i;
+    for(i=0;i<MAXCLIENTS;i++){
+        if((*all_clients)[i].serve_port == client_port_no){
+            return true;
+        }
+    }
+    return false;
+}
+
+void create_client(int client_port_no,struct client(*all_clients)[MAXCLIENTS]){
+   

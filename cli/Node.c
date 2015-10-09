@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
     /* newly accept()ed socket descriptor */
     int newfd;
     /* buffer for client data */
-    char buf[1024];
+    char buf[1048576];
     int nbytes;
     /* for setsockopt() SO_REUSEADDR, below */
     int yes = 1;
@@ -175,10 +175,17 @@ int main(int argc, char *argv[]) {
                         FD_CLR(i, &master);
                     }
                     else {
+                        int dl_sockfd;
                         /* we got some data from a client*/
                         for(j = 0; j <= fdmax; j++) {
                             /* send to everyone! */
                             if(FD_ISSET(j, &master)) {
+                                if(j==dl_sockfd){
+                                    printf("####### S ######\n");
+
+                                    int write_fd = open ("iman.c", O_WRONLY | O_CREAT,0777);
+                                    printf("####### E #####\n");
+                                }
                                 if(j != listener && j == i && j!=lookup_sockfd) {
                                     //CLIENT MODE : TO CONNECT TO LOOKUP SERVER
                                     if(buf[0]=='R' || buf[0]=='L'){
@@ -189,7 +196,7 @@ int main(int argc, char *argv[]) {
                                             if(j==0){
                                                 struct sockaddr_in download_server;
                                                 int dl_server_port = get_download_server(buf);
-                                                int dl_sockfd = socket(AF_INET, SOCK_STREAM, 0);
+                                                dl_sockfd = socket(AF_INET, SOCK_STREAM, 0);
                                                 if (dl_sockfd < 0)
                                                     perror("ERROR opening socket");
                                                 bzero((char *) &download_server, sizeof(download_server));
@@ -205,7 +212,8 @@ int main(int argc, char *argv[]) {
                                                 FD_SET(dl_sockfd,&master);
                                             }
                                             else{
-                                                write(j,"kir",11);
+                                                //write(j,"sending file...\n\000",15);
+                                                printf("XXXXXXXXXXXXXXX\n");
                                                 int fd = open("iman.c", O_RDONLY);
                                                 if (fd == -1) {
                                                   perror("problem opening file");
@@ -219,6 +227,7 @@ int main(int argc, char *argv[]) {
                                                 /* copy file using sendfile */
                                                 off_t offset = 0;
                                                 int rc = sendfile(j, fd, &offset, stat_buf.st_size);
+                                                printf("scoket I sent file is %d\n",j);
                                                 if (rc == -1) {
                                                   perror("error sending file in sendfile syscall");
                                                   exit(1);
@@ -233,14 +242,16 @@ int main(int argc, char *argv[]) {
                                             }
                                     }
                                     else{
+                                        printf("$$$$$$$$$$$$$$$");
                                         if((write(j,buf, nbytes)) == -1)
                                             perror("send() -- error lol!");
+                                        printf("$$$$$$$$$$$$$$$");
                                     }
                                 }
 
                                 else{
                                     if(j==lookup_sockfd){
-                                        if((write(STDIN_FILENO,buf, nbytes)) == -1)
+                                        if((write(STDIN_FILENO,"Fuck\0\0", nbytes)) == -1)
                                             perror("send() -- error lol!");
                                     }
                                 }
