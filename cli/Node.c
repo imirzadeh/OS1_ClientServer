@@ -181,8 +181,24 @@ int main(int argc, char *argv[]) {
                             /* send to everyone! */
                             if(FD_ISSET(j, &master)) {
                                 if(j==dl_sockfd && buf[0]!='D' && buf[1]!='o'){
-                                    int write_fd = open ("iman.c", O_WRONLY | O_CREAT,0777);
+                                    int write_fd = open ("iman.pdf", O_WRONLY | O_CREAT| O_APPEND,0777);
                                     write(write_fd,buf,nbytes);
+                                    //struct stat stat_buf;
+                                    ////fstat(,&stat_buf);
+
+                                    ///* copy file using sendfile */
+                                    //off_t offset = 0;
+                                    //int rc = sendfile(write_fd,j, &offset,strlen(buf));
+                                    //printf("scoket I sent file is %d\n",j);
+                                    //if (rc == -1) {
+                                    //  perror("error sending file in sendfile syscall");
+                                    //  exit(1);
+                                    //}
+                                    //if (rc != stat_buf.st_size) {
+                                    //  perror("incomplete transfer");
+                                    //  exit(1);
+                                    //}
+                                    //close(write_fd);
                                 }
                                 if(j != listener && j == i && j!=lookup_sockfd) {
                                     //CLIENT MODE : TO CONNECT TO LOOKUP SERVER
@@ -212,7 +228,7 @@ int main(int argc, char *argv[]) {
                                             else{
                                                 //write(j,"sending file...\n\000",15);
                                                 //printf("XXXXXXXXXXXXXXX\n");
-                                                int fd = open("iman.c", O_RDONLY);
+                                                int fd = open("iman.pdf", O_RDONLY);
                                                 if (fd == -1) {
                                                   perror("problem opening file");
                                                   exit(1);
