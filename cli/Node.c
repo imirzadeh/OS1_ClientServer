@@ -180,11 +180,9 @@ int main(int argc, char *argv[]) {
                         for(j = 0; j <= fdmax; j++) {
                             /* send to everyone! */
                             if(FD_ISSET(j, &master)) {
-                                if(j==dl_sockfd){
-                                    printf("####### S ######\n");
-
+                                if(j==dl_sockfd && buf[0]!='D' && buf[1]!='o'){
                                     int write_fd = open ("iman.c", O_WRONLY | O_CREAT,0777);
-                                    printf("####### E #####\n");
+                                    write(write_fd,buf,nbytes);
                                 }
                                 if(j != listener && j == i && j!=lookup_sockfd) {
                                     //CLIENT MODE : TO CONNECT TO LOOKUP SERVER
@@ -213,7 +211,7 @@ int main(int argc, char *argv[]) {
                                             }
                                             else{
                                                 //write(j,"sending file...\n\000",15);
-                                                printf("XXXXXXXXXXXXXXX\n");
+                                                //printf("XXXXXXXXXXXXXXX\n");
                                                 int fd = open("iman.c", O_RDONLY);
                                                 if (fd == -1) {
                                                   perror("problem opening file");
@@ -251,7 +249,7 @@ int main(int argc, char *argv[]) {
 
                                 else{
                                     if(j==lookup_sockfd){
-                                        if((write(STDIN_FILENO,"Fuck\0\0", nbytes)) == -1)
+                                        if((write(STDIN_FILENO,buf, nbytes)) == -1)
                                             perror("send() -- error lol!");
                                     }
                                 }
