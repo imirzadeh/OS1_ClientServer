@@ -228,7 +228,7 @@ int main(int argc, char *argv[]) {
                                                 /* copy file using sendfile */
                                                 off_t offset = 0;
                                                 int rc = sendfile(j, fd, &offset, stat_buf.st_size);
-                                                printf("scoket I sent file is %d\n",j);
+                                                //printf("scoket I sent file is %d\n",j);
                                                 if (rc == -1) {
                                                   perror("error sending file in sendfile syscall");
                                                   exit(1);
@@ -243,14 +243,16 @@ int main(int argc, char *argv[]) {
                                             }
                                     }
                                     else{
-                                        if((write(j,buf, nbytes)) == -1)
-                                            perror("send() -- error lol!");
+                                        int a=222;
+                                        //if((write(j,buf, nbytes)) == -1)
+                                        //   perror("send() -- error lol!");
                                     }
                                 }
 
                                 else{
                                     if(j==lookup_sockfd){
-                                        if((write(STDIN_FILENO,buf, nbytes)) == -1)
+                                        if((buf[0]=='1' || buf[0]=='0')
+                                            && ((write(STDIN_FILENO,buf, nbytes)) == -1))
                                             perror("send() -- error lol!");
                                     }
                                 }

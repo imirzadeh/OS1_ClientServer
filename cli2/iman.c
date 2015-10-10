@@ -650,6 +650,3 @@ def playGame(wordList):
 if __name__ == '__main__':
     wordList = loadWords()
     playGame(wordList)
-Register 12346 azghar.pdf
-0 346                   ]¶12345         
-12345           12345         
