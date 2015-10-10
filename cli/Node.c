@@ -1,3 +1,8 @@
+// TODO :
+// handle shown messages on terminal
+// printf && must be removed
+// more readable code IF possible!
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

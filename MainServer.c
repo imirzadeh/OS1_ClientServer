@@ -1,3 +1,11 @@
+// TODO :
+// server port is not dyanmic
+// server ip is not dynamic
+// sprintf & ... problem
+//
+// XXX
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -113,7 +121,7 @@ int find_best_server(char* filename,struct client(*all_clients)[MAXCLIENTS]){
 char* response(char* buf,struct client(*all_clients)[MAXCLIENTS]){
     //TODO : implement sth like sprintf
     int end=0;
-    for(end=0;end<strlen(buf);end++){
+    for(end=0;end<int(strlen(buf));end++){
         if (buf[end]=='\0' || buf[end]=='\n')
             break;
     }
@@ -129,7 +137,6 @@ char* response(char* buf,struct client(*all_clients)[MAXCLIENTS]){
         filename[end-7]='\0';
         int res = find_best_server(filename,&(*all_clients));
         inc_load(res,&(*all_clients));
-        // TODO : add file to client downloaded list
         sprintf(answer,"%d",res);
         //return res;
     }
@@ -159,24 +166,6 @@ int main(int argc, char *argv[]) {
     init_clients(&all_clients);
 
     all_clients[0].serve_port = 1000;
-    //printf("exist 1000?,%d\n",exist_client(1000,&all_clients));
-    //create_client(1000,&all_clients);
-    //create_client(2000,&all_clients);
-    //add_file_to_client(1000,"kirdozd.mp3",&all_clients);
-    //add_file_to_client(1000,"kiri\0",&all_clients);
-    //add_file_to_client(2000,"kirdozd.mp3",&all_clients);
-    //printf("best server is : %s\n",response("Lookup kirdozd.mp3",&all_clients));
-    //printf("best server is : %s\n",response("Lookup kirdozd.mp3",&all_clients));
-    //printf("best server is : %s\n",response("Lookup kirdozd.mp3",&all_clients));
-    //printf("best server is : %s\n",response("Lookup sirdozd.mp3",&all_clients));
-    //printf("Registering : %s\n",response("Register 12345 sirdozd.mp3",&all_clients));
-    //printf("Registering : %s\n",response("Register 56789 sirdozd.mp3",&all_clients));
-    //printf("Registering : %s\n",response("Register 11111 sirdozd.mp3",&all_clients));
-    //printf("best server is : %s\n",response("Lookup sirdozd.mp3",&all_clients));
-    //printf("best server is : %s\n",response("Lookup sirdozd.mp3",&all_clients));
-    //printf("best server is : %s\n",response("Lookup sirdozd.mp3",&all_clients));
-    //printf("best server is : %s\n",response("Lookup sirdozd.mp3",&all_clients));
-    /* master file descriptor list */
     fd_set master;
     /* temp file descriptor list for select() */
     fd_set read_fds;
