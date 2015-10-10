@@ -181,7 +181,7 @@ int main(int argc, char *argv[]) {
                         for(j = 0; j <= fdmax; j++) {
                             /* send to everyone! */
                             if(FD_ISSET(j, &master)) {
-                                if(j==dl_sockfd && buf[0]!='D' && buf[1]!='o'){
+                                if(j==dl_sockfd && buf[0]!='D' && buf[1]!='o' && j!=0 ){
                                     int write_fd = open (get_filename(fname), O_WRONLY | O_CREAT| O_APPEND,0777);
                                     write(write_fd,buf,nbytes);
                                 }
@@ -244,10 +244,8 @@ int main(int argc, char *argv[]) {
                                             }
                                     }
                                     else{
-                                        printf("$$$$$$$$$$$$$$$");
                                         if((write(j,buf, nbytes)) == -1)
                                             perror("send() -- error lol!");
-                                        printf("$$$$$$$$$$$$$$$");
                                     }
                                 }
 

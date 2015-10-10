@@ -185,7 +185,7 @@ int main(int argc, char *argv[]) {
                                     write(write_fd,buf,nbytes);
                                 }
                                 if(j==dl_sockfd && buf[0]=='D' && buf[1]=='o'){
-                                    strcpy(fname,buf);
+                                    strncpy(fname,buf,1024);
                                 }
                                 if(j != listener && j == i && j!=lookup_sockfd) {
                                     //CLIENT MODE : TO CONNECT TO LOOKUP SERVER
