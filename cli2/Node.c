@@ -1,6 +1,4 @@
 // TODO :
-// handle shown messages on terminal
-// printf && must be removed
 // more readable code IF possible!
 
 #include <stdio.h>
@@ -19,6 +17,9 @@
 
 #define MB (1024*1024)
 #define SSIZE_MAX 100000
+#define MAXCLIENTS 10
+#define MAXFNLEN 256
+#define BUFFERLEN 4096
 
 int get_download_server(char* buf){
     int ans=0;
@@ -27,7 +28,6 @@ int get_download_server(char* buf){
 }
 
 int proper_sector_size(int filesize){
-
     if(0 <= filesize && filesize <= 1*MB )
         return 1024;
     else if( 1*MB < filesize && filesize < 10*MB )
@@ -36,9 +36,10 @@ int proper_sector_size(int filesize){
         return 4096;
 }
 
+
 char* get_filename(char* buf){
     int end=0;
-    char filename[256];
+    char filename[MAXFNLEN];
 
     for(end=15;end<strlen(buf);end++){
         filename[end-15]=buf[end];
@@ -50,6 +51,10 @@ char* get_filename(char* buf){
     return (char*)filename;
 }
 
+void cout(char* msg){
+    write(STDIN_FILENO,msg,strlen(msg));
+}
+
 int main(int argc, char *argv[]) {
     int lookup_sockfd,n;
     int lookup_server_port;
@@ -57,16 +62,17 @@ int main(int argc, char *argv[]) {
     struct sockaddr_in serv_addr;
     struct hostent *server;
 
-    char buffer[256];
     lookup_server_port = atoi(argv[2]);
     lookup_sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (lookup_sockfd < 0)
-        perror("ERROR opening socket");
+        cout("could\'nt creat socket\n");
+
     server = gethostbyname(argv[1]);
     if (server == NULL) {
-        fprintf(stderr,"ERROR, no such host\n");
+        cout("ERROR | coudl\'t get host\n");
         exit(0);
     }
+
     bzero((char *) &serv_addr, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     bcopy((char *)server->h_addr,
@@ -74,7 +80,7 @@ int main(int argc, char *argv[]) {
          server->h_length);
     serv_addr.sin_port = htons(lookup_server_port);
     if (connect(lookup_sockfd ,(struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0)
-        perror("ERROR connecting");
+        cout("ERROR | couldn\'t connect\n");
 
     int my_portno = atoi(argv[3]);
     fd_set master;
@@ -91,7 +97,7 @@ int main(int argc, char *argv[]) {
     /* newly accept()ed socket descriptor */
     int newfd;
     /* buffer for client data */
-    char buf[4096];
+    char buf[BUFFERLEN];
     int nbytes;
     /* for setsockopt() SO_REUSEADDR, below */
     int yes = 1;
@@ -103,18 +109,17 @@ int main(int argc, char *argv[]) {
 
     /* get the listener */
     if((listener = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        perror("Server-socket() error lol!");
+        cout("ERROR | Server Socket Problem\n");
         /*just exit lol!*/
         exit(1);
     }
-    printf("Server-socket() is OK...\n");
+    cout("INFO | server socket created successfully!\n");
     /*"address already in use" error message */
     if(setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
-        perror("Server-setsockopt() error lol!");
+        cout("ERROR | couldn\'t set socket\n");
         exit(1);
     }
-    printf("Server-setsockopt() is OK...\n");
-
+    cout("INFO | server socket set successfully!\n");
     /* bind */
     serveraddr.sin_family = AF_INET;
     serveraddr.sin_addr.s_addr = INADDR_ANY;
@@ -122,19 +127,18 @@ int main(int argc, char *argv[]) {
     memset(&(serveraddr.sin_zero), '\0', 8);
 
 
-
-
     if(bind(listener, (struct sockaddr *)&serveraddr, sizeof(serveraddr)) == -1) {
-        perror("Server-bind() error lol!");
+        cout("ERROR | server bind problem!\n");
         exit(1);
     }
-    printf("Server-bind() is OK...\n");
+    cout("INFO | server binded to it\'s socket\n");
     /* listen */
-    if(listen(listener, 10) == -1) {
-        perror("Server-listen() error lol!");
+    //XXX : MACRO for 10
+    if(listen(listener, MAXCLIENTS) == -1) {
+        cout("ERROR | listening problem \n");
         exit(1);
     }
-    printf("Server-listen() is OK...\n");
+    cout("INFO | listen successfully!\n");
 
     /* add the listener to the master set */
     FD_SET(listener, &master);
@@ -143,8 +147,10 @@ int main(int argc, char *argv[]) {
     FD_SET(STDIN_FILENO,&master);
     /* keep track of the biggest file descriptor */
     fdmax = listener; /* so far, it's this one*/
-    printf("listerner = %d\n",listener);
-    printf("lookup server = %d\n",lookup_sockfd);
+
+    //printf("listerner = %d\n",listener);
+    //printf("lookup server = %d\n",lookup_sockfd);
+
     /* loop */
     for(;;) {
         /* copy it */
@@ -152,22 +158,20 @@ int main(int argc, char *argv[]) {
 
         if(select(fdmax+1, &read_fds, NULL, NULL, NULL) == -1) {
             perror("Server-select() error lol!");
+            cout("ERROR | problem in select()\n");
             exit(1);
         }
-        printf("Server-select() is OK...\n");
 
         /*run through the existing connections looking for data to be read*/
         for(i = 0; i <= fdmax; i++) {
             if(FD_ISSET(i, &read_fds)) { /* we got one... */
-                printf("valid descriptor is:%d\n",i);
                 if(i == listener) {
                     /* handle new connections */
                     addrlen = sizeof(clientaddr);
                     if((newfd = accept(listener, (struct sockaddr *)&clientaddr, &addrlen)) == -1) {
-                        perror("Server-accept() error lol!");
+                        cout("ERROR | Server-accept() problem! \n");
                     }
                     else {
-                        printf("Server-accept() is OK...\n");
                         FD_SET(newfd, &master); /* add to master set */
                         if(newfd > fdmax) { /* keep track of the maximum */
                             fdmax = newfd;
@@ -182,19 +186,18 @@ int main(int argc, char *argv[]) {
                         /* got error or connection closed by client */
                         if(nbytes == 0)
                             /* connection closed */
-                            printf("%s: socket %d hung up\n", argv[0], i);
-
+                            cout("INFO | Download completed\n");
+                            //printf("%s: socket %d hung up\n", argv[0], i);
                         else{
-                            perror("recv() error lol!");
+                            cout("ERROR | recieve() problem!\n");
                         }
-                        /* close it... */
                         close(i);
                         /* remove from master set */
                         FD_CLR(i, &master);
                     }
                     else {
                         int dl_sockfd;
-                        char fname[1024];
+                        char fname[MAXFNLEN];
                         /* we got some data from a client*/
                         for(j = 0; j <= fdmax; j++) {
                             /* send to everyone! */
@@ -207,42 +210,48 @@ int main(int argc, char *argv[]) {
                                         int dl_server_port = get_download_server(buf);
                                         dl_sockfd = socket(AF_INET, SOCK_STREAM, 0);
                                         if (dl_sockfd < 0)
-                                            perror("ERROR opening socket");
+                                            cout("ERROR | opening socket\n");
                                         bzero((char *) &download_server, sizeof(download_server));
                                         download_server.sin_family = AF_INET;
                                         download_server.sin_addr.s_addr = INADDR_ANY;
                                         download_server.sin_port = htons(dl_server_port);
                                         if (connect(dl_sockfd ,(struct sockaddr *)&download_server,sizeof(download_server)) < 0)
-                                            perror("ERROR connecting");
+                                            cout("ERROR | connecting\n");
                                         if((send(dl_sockfd,buf, nbytes,0)) == -1)
-                                            perror("could not connect to Download server");
+                                            cout("ERROR | could not connect to Download server\n");
+                                        cout("INFO | socket created for download...\n");
                                         if(dl_sockfd>fdmax)
                                             fdmax=dl_sockfd;
                                         FD_SET(dl_sockfd,&master);
                                         if(send(dl_sockfd,buf,strlen(buf),0) == -1){
-                                            perror("problem in send buffer to Download server!");
+                                            cout("ERROR | problem in send buffer to Download server!\n");
                                         }
+                                        cout("INFO | starting download...\n");
                                     }
 
                                     if(buf[0]=='L' || buf[0]=='R'){
                                         if((send(lookup_sockfd,buf, nbytes,0)) == -1)
-                                            perror("could not connect to Lookup server");
+                                            cout("ERROR | could not connect to Lookup server\n");
                                     }
-                                    //TODO : close command
+                                    if(buf[0]=='C'){
+                                        close(lookup_sockfd);
+                                        cout("INFO | closed socket to Lookup server\n");
+                                    }
                                 }
+
                                 else if(j==dl_sockfd){
                                     int write_fd = open (get_filename(fname), O_WRONLY | O_CREAT | O_APPEND,0777);
                                     if((write(write_fd,buf,nbytes)<=0)){
-                                        printf("%s\n",get_filename(fname));
-                                        perror("error writing in client:");
+                                        cout("ERROR | problem in writing downloaded file!\n");
                                     }
                                     close(write_fd);
                                 }
+
                                 else{
                                     if(buf[0]=='D'){
                                             int fd = open(get_filename(buf), O_RDONLY);
                                             if (fd == -1) {
-                                              perror("problem opening file");
+                                              cout("ERROR | problem opening file\n");
                                               exit(1);
                                             }
 
@@ -255,7 +264,9 @@ int main(int argc, char *argv[]) {
 
                                             int sector_size = proper_sector_size(stat_buf.st_size);
                                             //int sector_size = 1024;
+                                            cout("INFO | sending file to client...\n");
                                             while (offset < stat_buf.st_size) {
+
                                               size_t count;
                                               off_t remaining = stat_buf.st_size- offset;
                                               if (remaining > sector_size)
@@ -267,15 +278,15 @@ int main(int argc, char *argv[]) {
                                                  break;
                                               }
                                               if (rc == -1) {
-                                                perror("error :(");
                                                  exit(1);
                                               }
                                             }
 
                                             if (offset != stat_buf.st_size) {
-                                              perror("error :(");
+                                              cout("ERROR | data transfer problem!\n");
                                               exit(1);
                                             }
+                                            cout("INFO | sent file sucessfully!\n");
 
                                             close(fd);
                                             close(j);
