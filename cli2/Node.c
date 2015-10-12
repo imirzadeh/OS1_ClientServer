@@ -16,12 +16,24 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <fcntl.h>
+
+#define MB (1024*1024)
 #define SSIZE_MAX 100000
 
 int get_download_server(char* buf){
     int ans=0;
     ans = (buf[9]-'0')*10000 + (buf[10]-'0')*1000 + (buf[11]-'0')*100 + (buf[12]-'0')*10 + (buf[13]-'0');
     return ans;
+}
+
+int proper_sector_size(int filesize){
+
+    if(0 <= filesize && filesize <= 1*MB )
+        return 1024;
+    else if( 1*MB < filesize && filesize < 10*MB )
+        return 2048;
+    else
+        return 4096;
 }
 
 char* get_filename(char* buf){
@@ -79,7 +91,7 @@ int main(int argc, char *argv[]) {
     /* newly accept()ed socket descriptor */
     int newfd;
     /* buffer for client data */
-    char buf[1048576];
+    char buf[4096];
     int nbytes;
     /* for setsockopt() SO_REUSEADDR, below */
     int yes = 1;
@@ -224,6 +236,7 @@ int main(int argc, char *argv[]) {
                                         printf("%s\n",get_filename(fname));
                                         perror("error writing in client:");
                                     }
+                                    close(write_fd);
                                 }
                                 else{
                                     if(buf[0]=='D'){
@@ -238,16 +251,16 @@ int main(int argc, char *argv[]) {
                                             fstat(fd, &stat_buf);
 
                                             int rc;
-                                            /* copy file using sendfile */
                                             off_t offset = 0;
-                                             /* copy file using sendfile */
-                                            size_t part = (stat_buf.st_size/10);
+
+                                            int sector_size = proper_sector_size(stat_buf.st_size);
+                                            //int sector_size = 1024;
                                             while (offset < stat_buf.st_size) {
                                               size_t count;
                                               off_t remaining = stat_buf.st_size- offset;
-                                              if (remaining > part)
-                                                  count = part;
-                                               else
+                                              if (remaining > sector_size)
+                                                  count = sector_size;
+                                              else
                                                   count = remaining;
                                               rc = sendfile(j, fd, &offset, count);
                                               if (rc == 0) {
