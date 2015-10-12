@@ -204,7 +204,7 @@ int main(int argc, char *argv[]) {
                             if(FD_ISSET(j, &read_fds)) {
                                 if(j==STDIN_FILENO ){
                                     //Download
-                                    if(buf[0]=='D'){
+                                    if(buf[0]=='D' && buf[1]=='o'){
                                         strncpy(fname,buf,1024);
                                         struct sockaddr_in download_server;
                                         int dl_server_port = get_download_server(buf);
@@ -233,12 +233,20 @@ int main(int argc, char *argv[]) {
                                         if((send(lookup_sockfd,buf, nbytes,0)) == -1)
                                             cout("ERROR | could not connect to Lookup server\n");
                                     }
-                                    if(buf[0]=='C'){
+                                    if(buf[0]=='D' && buf[1]=='i' && buf[2]=='s'){
+                                        char msg[512];
+                                        sprintf(msg,"Disconnect %d",my_portno);
+                                        write(lookup_sockfd,msg,strlen(msg));
                                         close(lookup_sockfd);
                                         cout("INFO | closed socket to Lookup server\n");
+                                        exit(0);
                                     }
                                 }
 
+                                else if(j==lookup_sockfd){
+                                    cout(buf);
+                                    cout("\n");
+                                }
                                 else if(j==dl_sockfd){
                                     int write_fd = open (get_filename(fname), O_WRONLY | O_CREAT | O_APPEND,0777);
                                     if((write(write_fd,buf,nbytes)<=0)){

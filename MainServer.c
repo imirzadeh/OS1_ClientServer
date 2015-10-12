@@ -1,9 +1,6 @@
 // TODO :
 // server port is not dyanmic
 // server ip is not dynamic
-// sprintf & ... problem
-//
-// XXX
 
 
 #include <stdio.h>
@@ -70,6 +67,26 @@ void inc_load(int client_port_no,struct client(*all_clients)[MAXCLIENTS]){
     }
 }
 
+int disconnect_client(int client_port_no,struct client(*all_clients)[MAXCLIENTS]){
+    int i,j;
+    bool found = exist_client(client_port_no,&(*all_clients));
+    if(!found){
+        return 0;
+    }
+    for(i=0;i<MAXCLIENTS;i++){
+        if( (*all_clients)[i].serve_port == client_port_no ) {
+            (*all_clients)[i].serve_port = -1;
+            (*all_clients)[i].file_count = 0;
+            (*all_clients)[i].load = 0;
+            for(j=0;j<10;j++){
+                (*all_clients)[i].files[j][0]='-';
+            }
+            return 1;
+        }
+    }
+    return 0;
+}
+
 void add_file_to_client(int client_port_no,char* file_name,struct client(*all_clients)[MAXCLIENTS]){
     int i;
     bool found = exist_client(client_port_no,&(*all_clients));
@@ -85,18 +102,6 @@ void add_file_to_client(int client_port_no,char* file_name,struct client(*all_cl
     }
 }
 
-void print_clients(struct client(*all_clients)[MAXCLIENTS]){
-    int k,l;
-    for(k=0;k<MAXCLIENTS;k++){
-        printf("%d\n",(*all_clients)[k].serve_port);
-        for(l=0;l<10;l++){
-                if( (*all_clients)[k].files[l][0] != '-' ){
-                    printf("%s\n",(*all_clients)[k].files[l]);
-                }
-            }
-        printf("################\n");
-    }
-}
 
 int find_best_server(char* filename,struct client(*all_clients)[MAXCLIENTS]){
     int min_load = 100;
@@ -104,9 +109,6 @@ int find_best_server(char* filename,struct client(*all_clients)[MAXCLIENTS]){
     int i,j;
     for(i=0;i<MAXCLIENTS;i++){
         for(j=0;j<10;j++){
-            //printf("###\n");
-            //printf("%s\n%s\n",(*all_clients)[i].files[j],filename);
-            //printf("###\n");
             if(strcmp((*all_clients)[i].files[j],filename) == 0){
                 if((*all_clients)[i].load < min_load){
                     min_load = (*all_clients)[i].load;
@@ -119,9 +121,8 @@ int find_best_server(char* filename,struct client(*all_clients)[MAXCLIENTS]){
 }
 
 char* response(char* buf,struct client(*all_clients)[MAXCLIENTS]){
-    //TODO : implement sth like sprintf
     int end=0;
-    for(end=0;end<int(strlen(buf));end++){
+    for(end=0;end<(strlen(buf));end++){
         if (buf[end]=='\0' || buf[end]=='\n')
             break;
     }
@@ -152,9 +153,11 @@ char* response(char* buf,struct client(*all_clients)[MAXCLIENTS]){
         sprintf(answer,"%d",0);
         //return 0;
     }
-
+    else if(buf[0]=='D'){
+        int port_no = (buf[11]-'0')*10000 + (buf[12]-'0')*1000 + (buf[13]-'0')*100+(buf[14]-'0')*10+(buf[15]-'0');
+        disconnect_client(port_no,&(*all_clients));
+    }
     else{
-        //return -2;
         sprintf(answer,"%d",-2);
     }
     return (char*)answer;
