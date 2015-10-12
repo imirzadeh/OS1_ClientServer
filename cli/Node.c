@@ -16,6 +16,7 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <fcntl.h>
+#define SSIZE_MAX 100000
 
 int get_download_server(char* buf){
     int ans=0;
@@ -159,7 +160,8 @@ int main(int argc, char *argv[]) {
                         if(newfd > fdmax) { /* keep track of the maximum */
                             fdmax = newfd;
                         }
-                        printf("%s: New connection from %s on socket %d\n", argv[0], inet_ntoa(clientaddr.sin_addr), newfd);
+                        //printf("%s: New connection from %s on socket %d\n", argv[0], inet_ntoa(clientaddr.sin_addr), newfd);
+
                     }
                 }
                 else {
@@ -184,86 +186,90 @@ int main(int argc, char *argv[]) {
                         /* we got some data from a client*/
                         for(j = 0; j <= fdmax; j++) {
                             /* send to everyone! */
-                            if(FD_ISSET(j, &master)) {
-                                if(j==dl_sockfd && buf[0]!='D' && buf[1]!='o'& j!=0 ){
-                                    int write_fd = open (get_filename(fname), O_WRONLY | O_CREAT| O_APPEND,0777);
-                                    write(write_fd,buf,nbytes);
-                                }
-                                if(j==dl_sockfd && buf[0]=='D' && buf[1]=='o'){
-                                    strncpy(fname,buf,1024);
-                                }
-                                if(j != listener && j == i && j!=lookup_sockfd) {
-                                    //CLIENT MODE : TO CONNECT TO LOOKUP SERVER
-                                    if(buf[0]=='R' || buf[0]=='L'){
+                            if(FD_ISSET(j, &read_fds)) {
+                                if(j==STDIN_FILENO ){
+                                    //Download
+                                    if(buf[0]=='D'){
+                                        strncpy(fname,buf,1024);
+                                        struct sockaddr_in download_server;
+                                        int dl_server_port = get_download_server(buf);
+                                        dl_sockfd = socket(AF_INET, SOCK_STREAM, 0);
+                                        if (dl_sockfd < 0)
+                                            perror("ERROR opening socket");
+                                        bzero((char *) &download_server, sizeof(download_server));
+                                        download_server.sin_family = AF_INET;
+                                        download_server.sin_addr.s_addr = INADDR_ANY;
+                                        download_server.sin_port = htons(dl_server_port);
+                                        if (connect(dl_sockfd ,(struct sockaddr *)&download_server,sizeof(download_server)) < 0)
+                                            perror("ERROR connecting");
+                                        if((send(dl_sockfd,buf, nbytes,0)) == -1)
+                                            perror("could not connect to Download server");
+                                        if(dl_sockfd>fdmax)
+                                            fdmax=dl_sockfd;
+                                        FD_SET(dl_sockfd,&master);
+                                        if(send(dl_sockfd,buf,strlen(buf),0) == -1){
+                                            perror("problem in send buffer to Download server!");
+                                        }
+                                    }
+
+                                    if(buf[0]=='L' || buf[0]=='R'){
                                         if((send(lookup_sockfd,buf, nbytes,0)) == -1)
                                             perror("could not connect to Lookup server");
                                     }
-                                    else if(buf[0]=='D'){
-                                            if(j==0){
-                                                struct sockaddr_in download_server;
-                                                int dl_server_port = get_download_server(buf);
-                                                dl_sockfd = socket(AF_INET, SOCK_STREAM, 0);
-                                                if (dl_sockfd < 0)
-                                                    perror("ERROR opening socket");
-                                                bzero((char *) &download_server, sizeof(download_server));
-                                                download_server.sin_family = AF_INET;
-                                                download_server.sin_addr.s_addr = INADDR_ANY;
-                                                download_server.sin_port = htons(dl_server_port);
-                                                if (connect(dl_sockfd ,(struct sockaddr *)&download_server,sizeof(download_server)) < 0)
-                                                    perror("ERROR connecting");
-                                                if((send(dl_sockfd,buf, nbytes,0)) == -1)
-                                                    perror("could not connect to Download server");
-                                                if(dl_sockfd>fdmax)
-                                                    fdmax=dl_sockfd;
-                                                FD_SET(dl_sockfd,&master);
-                                            }
-                                            else{
-                                                //write(j,"sending file...\n\000",15);
-                                                //printf("XXXXXXXXXXXXXXX\n");
-                                                int fd = open(get_filename(buf), O_RDONLY);
-                                                if (fd == -1) {
-                                                  perror("problem opening file");
-                                                  exit(1);
-                                                }
-
-                                                /* get the size of the file to be sent */
-                                                struct stat stat_buf;
-                                                fstat(fd, &stat_buf);
-
-                                                /* copy file using sendfile */
-                                                off_t offset = 0;
-                                                int rc = sendfile(j, fd, &offset, stat_buf.st_size);
-                                                //printf("scoket I sent file is %d\n",j);
-                                                if (rc == -1) {
-                                                  perror("error sending file in sendfile syscall");
-                                                  exit(1);
-                                                }
-                                                if (rc != stat_buf.st_size) {
-                                                  perror("incomplete transfer");
-                                                  exit(1);
-                                                }
-                                                close(fd);
-                                                close(j);
-                                                FD_CLR(j,&master);
-                                            }
-                                    }
-                                    else{
-                                        int a=222;
-                                        //if((write(j,buf, nbytes)) == -1)
-                                        //   perror("send() -- error lol!");
+                                    //TODO : close command
+                                }
+                                else if(j==dl_sockfd){
+                                    int write_fd = open (get_filename(fname), O_WRONLY | O_CREAT | O_APPEND,0777);
+                                    if((write(write_fd,buf,nbytes)<=0)){
+                                        printf("%s\n",get_filename(fname));
+                                        perror("error writing in client:");
                                     }
                                 }
-
                                 else{
-                                    if(j==lookup_sockfd){
-                                        if((buf[0]=='1' || buf[0]=='0')
-                                            && ((write(STDIN_FILENO,buf, nbytes)) == -1))
-                                            perror("send() -- error lol!");
+                                    if(buf[0]=='D'){
+                                            int fd = open(get_filename(buf), O_RDONLY);
+                                            if (fd == -1) {
+                                              perror("problem opening file");
+                                              exit(1);
+                                            }
+
+                                            /* get the size of the file to be sent */
+                                            struct stat stat_buf;
+                                            fstat(fd, &stat_buf);
+
+                                            int rc;
+                                            /* copy file using sendfile */
+                                            off_t offset = 0;
+                                             /* copy file using sendfile */
+                                            size_t part = (stat_buf.st_size/10);
+                                            while (offset < stat_buf.st_size) {
+                                              size_t count;
+                                              off_t remaining = stat_buf.st_size- offset;
+                                              if (remaining > part)
+                                                  count = part;
+                                               else
+                                                  count = remaining;
+                                              rc = sendfile(j, fd, &offset, count);
+                                              if (rc == 0) {
+                                                 break;
+                                              }
+                                              if (rc == -1) {
+                                                perror("error :(");
+                                                 exit(1);
+                                              }
+                                            }
+
+                                            if (offset != stat_buf.st_size) {
+                                              perror("error :(");
+                                              exit(1);
+                                            }
+
+                                            close(fd);
+                                            close(j);
+                                            FD_CLR(j,&master);
                                     }
                                 }
-
                             }
-                            //from server
                         }
                     }
                 }
