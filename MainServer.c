@@ -127,7 +127,7 @@ char* response(char* buf,struct client(*all_clients)[MAXCLIENTS]){
             break;
     }
 
-    char answer[1024];
+    char answer[1024]="";
     //Lookup
     char filename[1024];
     int i;
@@ -137,8 +137,13 @@ char* response(char* buf,struct client(*all_clients)[MAXCLIENTS]){
         }
         filename[end-7]='\0';
         int res = find_best_server(filename,&(*all_clients));
-        inc_load(res,&(*all_clients));
-        sprintf(answer,"%d",res);
+        if(res == -1){
+            sprintf(answer,"SERVER RESP | requested file not found on any client!\0");
+        }
+        else{
+            inc_load(res,&(*all_clients));
+            sprintf(answer,"SERVER RESP | file found on localhost:%d!\0",res);
+        }
         //return res;
     }
 
@@ -150,7 +155,7 @@ char* response(char* buf,struct client(*all_clients)[MAXCLIENTS]){
         }
         filename[end-15]='\0';
         add_file_to_client(port_no,filename,&(*all_clients));
-        sprintf(answer,"%d",0);
+        sprintf(answer,"SERVER RESP | successfully registered your file!\0");
         //return 0;
     }
     else if(buf[0]=='D'){
@@ -158,9 +163,13 @@ char* response(char* buf,struct client(*all_clients)[MAXCLIENTS]){
         disconnect_client(port_no,&(*all_clients));
     }
     else{
-        sprintf(answer,"%d",-2);
+        sprintf(answer,"SERVER RESP | meaningless command!\0");
     }
     return (char*)answer;
+}
+
+void cout(char* msg){
+    write(STDIN_FILENO,msg,strlen(msg));
 }
 
 int main(int argc, char *argv[]) {
@@ -168,7 +177,6 @@ int main(int argc, char *argv[]) {
     struct client all_clients[MAXCLIENTS];
     init_clients(&all_clients);
 
-    all_clients[0].serve_port = 1000;
     fd_set master;
     /* temp file descriptor list for select() */
     fd_set read_fds;
@@ -195,17 +203,18 @@ int main(int argc, char *argv[]) {
 
     /* get the listener */
     if((listener = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        perror("Server-socket() error lol!");
+        cout("ERROR | server socket() problem\n");
         /*just exit lol!*/
         exit(1);
     }
-    printf("Server-socket() is OK...\n");
+    cout("INFO | server socket created successfully!\n");
     /*"address already in use" error message */
     if(setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
-        perror("Server-setsockopt() error lol!");
+        cout("ERROR | listen socket problem!\n");
         exit(1);
     }
-    printf("Server-setsockopt() is OK...\n");
+
+    cout("INFO | socket set successfully\n");
 
     /* bind */
     serveraddr.sin_family = AF_INET;
@@ -214,33 +223,32 @@ int main(int argc, char *argv[]) {
     memset(&(serveraddr.sin_zero), '\0', 8);
 
     if(bind(listener, (struct sockaddr *)&serveraddr, sizeof(serveraddr)) == -1) {
-        perror("Server-bind() error lol!");
+        cout("ERROR | server bind problem!\n");
         exit(1);
     }
-    printf("Server-bind() is OK...\n");
+    cout("INFO | binded successfully\n");
     /* listen */
     if(listen(listener, 10) == -1) {
-        perror("Server-listen() error lol!");
+        cout("ERROR | listen problem\n");
         exit(1);
     }
-    printf("Server-listen() is OK...\n");
+
+    cout("INFO | listen socket set sucessfully\n");
 
     /* add the listener to the master set */
     FD_SET(listener, &master);
     //FD_SET(STDIN_FILENO,&master);
     /* keep track of the biggest file descriptor */
     fdmax = listener; /* so far, it's this one*/
-    printf("listerner = %d",listener);
     /* loop */
     for(;;) {
         /* copy it */
         read_fds = master;
 
         if(select(fdmax+1, &read_fds, NULL, NULL, NULL) == -1) {
-            perror("Server-select() error lol!");
+            cout("ERROR | select() method\n");
             exit(1);
         }
-        printf("Server-select() is OK...\n");
 
         /*run through the existing connections looking for data to be read*/
         for(i = 0; i <= fdmax; i++) {
@@ -249,31 +257,27 @@ int main(int argc, char *argv[]) {
                     /* handle new connections */
                     addrlen = sizeof(clientaddr);
                     if((newfd = accept(listener, (struct sockaddr *)&clientaddr, &addrlen)) == -1) {
-                        perror("Server-accept() error lol!");
+                        cout("ERROR | server-accept() function problem!\n");
                     }
                     else {
-                        printf("Server-accept() is OK...\n");
                         FD_SET(newfd, &master); /* add to master set */
                         if(newfd > fdmax) { /* keep track of the maximum */
                             fdmax = newfd;
                         }
-                        printf("%s: New connection from %s on socket %d\n", argv[0], inet_ntoa(clientaddr.sin_addr), newfd);
+                        char tmp[1024];
+                        sprintf(tmp,"INFO | New connection from %s on socket %d\n", inet_ntoa(clientaddr.sin_addr), newfd);
+                        cout(tmp);
                     }
                 }
                 else {
-                    /* handle data from a client */
                     if((nbytes = recv(i, buf, sizeof(buf), 0)) <= 0) {
-                        /* got error or connection closed by client */
                         if(nbytes == 0)
-                            /* connection closed */
-                            printf("%s: socket %d hung up\n", argv[0], i);
+                            cout("INFO | a client disconnected!\n");
 
                         else{
-                            perror("recv() error lol!");
+                            cout("ERROR | recv() problem\n");
                         }
-                        /* close it... */
                         close(i);
-                        /* remove from master set */
                         FD_CLR(i, &master);
                     }
                     else {
@@ -283,8 +287,20 @@ int main(int argc, char *argv[]) {
                             if(FD_ISSET(j, &master)) {
                                 /* except the listener and ourselves */
                                 if(j != listener && j == i) {
-                                    if(send(j,response(buf,&all_clients), nbytes, 0) == -1)
-                                        perror("send() error lol!");
+                                    char resp[1024]="0";
+                                    sprintf(resp,"%s",response(buf,&all_clients));
+
+                                    int end;
+                                    int len=strlen(resp);
+                                    for(end=0;end<len;end++){
+                                        if(resp[end]=='\0' || resp[end]=='!')
+                                            break;
+                                    }
+                                    for(end=end;end<len;end++){
+                                        resp[end]='\0';
+                                    }
+                                    if((send(j,resp,end, 0)) == -1)
+                                        cout("ERROR | send() error\n");
                                 }
                             }
                         }
