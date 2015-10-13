@@ -133,7 +133,6 @@ int main(int argc, char *argv[]) {
     }
     cout("INFO | server binded to it\'s socket\n");
     /* listen */
-    //XXX : MACRO for 10
     if(listen(listener, MAXCLIENTS) == -1) {
         cout("ERROR | listening problem \n");
         exit(1);
@@ -147,9 +146,6 @@ int main(int argc, char *argv[]) {
     FD_SET(STDIN_FILENO,&master);
     /* keep track of the biggest file descriptor */
     fdmax = listener; /* so far, it's this one*/
-
-    //printf("listerner = %d\n",listener);
-    //printf("lookup server = %d\n",lookup_sockfd);
 
     /* loop */
     for(;;) {
@@ -176,18 +172,28 @@ int main(int argc, char *argv[]) {
                         if(newfd > fdmax) { /* keep track of the maximum */
                             fdmax = newfd;
                         }
-                        //printf("%s: New connection from %s on socket %d\n", argv[0], inet_ntoa(clientaddr.sin_addr), newfd);
 
                     }
                 }
                 else {
+                    char fname[MAXFNLEN];
                     /* handle data from a client */
                     if((nbytes = read(i, buf, sizeof(buf))) <= 0) {
                         /* got error or connection closed by client */
-                        if(nbytes == 0)
+                        if(nbytes == 0){
                             /* connection closed */
                             cout("INFO | Download completed\n");
-                            //printf("%s: socket %d hung up\n", argv[0], i);
+                            char tmp[1024]={0};
+                            sprintf(tmp,"Register %d ",my_portno);
+                            strcat(tmp,get_filename(fname));
+                            printf("filename to reg:%s\n",tmp);
+                            if(write(lookup_sockfd,tmp,strlen(tmp)) <0){
+                                cout("ERROR | couldn\'t update lookup server\n");
+                            }
+                            else{
+                                cout("INFO | added file successfully to lookup server!\n");
+                            }
+                        }
                         else{
                             cout("ERROR | recieve() problem!\n");
                         }
@@ -197,7 +203,6 @@ int main(int argc, char *argv[]) {
                     }
                     else {
                         int dl_sockfd;
-                        char fname[MAXFNLEN];
                         /* we got some data from a client*/
                         for(j = 0; j <= fdmax; j++) {
                             /* send to everyone! */
@@ -237,7 +242,6 @@ int main(int argc, char *argv[]) {
                                         char msg[512];
                                         sprintf(msg,"Disconnect %d",my_portno);
                                         write(lookup_sockfd,msg,strlen(msg));
-                                        close(lookup_sockfd);
                                         cout("INFO | closed socket to Lookup server\n");
                                         exit(0);
                                     }

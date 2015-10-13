@@ -127,7 +127,7 @@ char* response(char* buf,struct client(*all_clients)[MAXCLIENTS]){
             break;
     }
 
-    char answer[1024]="";
+    char answer[1024]={0};
     //Lookup
     char filename[1024];
     int i;
