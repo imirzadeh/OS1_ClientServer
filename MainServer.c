@@ -120,6 +120,11 @@ int find_best_server(char* filename,struct client(*all_clients)[MAXCLIENTS]){
     return best_server;
 }
 
+
+void cout(char* msg){
+    write(STDIN_FILENO,msg,strlen(msg));
+}
+
 char* response(char* buf,struct client(*all_clients)[MAXCLIENTS]){
     int end=0;
     for(end=0;end<(strlen(buf));end++){
@@ -129,34 +134,35 @@ char* response(char* buf,struct client(*all_clients)[MAXCLIENTS]){
 
     char answer[1024]={0};
     //Lookup
-    char filename[1024];
-    int i;
+    char filename[1024]={0};
+    char cmd[1024]={0};
+    char ip[1024]={0};
+    int i,port;
     if(buf[0] == 'L'){
-        for(i=7;i<end;i++){
-            filename[i-7]=buf[i];
-        }
-        filename[end-7]='\0';
+        sscanf(buf,"%s %s %s %d",cmd,filename,ip,&port);
+        char tmpmsg[512]={0};
+        sprintf(tmpmsg,"INFO | %s:%d is looking for %s\n",ip,port,filename);
+        cout(tmpmsg);
         int res = find_best_server(filename,&(*all_clients));
         if(res == -1){
             sprintf(answer,"SERVER RESP | requested file not found on any client!\0");
         }
         else{
             inc_load(res,&(*all_clients));
-            sprintf(answer,"SERVER RESP | file found on localhost:%d!\0",res);
+            sprintf(answer,"SERVER RESP | file found on 127.0.0.1:%d!\0",res);
         }
         //return res;
     }
 
     // Register
     else if(buf[0]=='R'){
-        int port_no = (buf[9]-'0')*10000 + (buf[10]-'0')*1000 + (buf[11]-'0')*100+(buf[12]-'0')*10+(buf[13]-'0');
-        for(i=15;i<end;i++){
-            filename[i-15]=buf[i];
-        }
-        filename[end-15]='\0';
-        add_file_to_client(port_no,filename,&(*all_clients));
+        sscanf(buf,"%s %s %s %d",cmd,filename,ip,&port);
+        char tmpmsg[512]={0};
+        sprintf(tmpmsg,"INFO | %s:%d registred %s\n",ip,port,filename);
+        cout(tmpmsg);
+        printf("filename:%s | port:%d\n",filename,port);
+        add_file_to_client(port,filename,&(*all_clients));
         sprintf(answer,"SERVER RESP | successfully registered your file!\0");
-        //return 0;
     }
     else if(buf[0]=='D'){
         int port_no = (buf[11]-'0')*10000 + (buf[12]-'0')*1000 + (buf[13]-'0')*100+(buf[14]-'0')*10+(buf[15]-'0');
@@ -168,9 +174,6 @@ char* response(char* buf,struct client(*all_clients)[MAXCLIENTS]){
     return (char*)answer;
 }
 
-void cout(char* msg){
-    write(STDIN_FILENO,msg,strlen(msg));
-}
 
 int main(int argc, char *argv[]) {
 

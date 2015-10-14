@@ -39,7 +39,7 @@ int proper_sector_size(int filesize){
 
 char* get_filename(char* buf){
     int end=0;
-    char filename[MAXFNLEN];
+    char filename[MAXFNLEN]={0};
 
     for(end=15;end<strlen(buf);end++){
         filename[end-15]=buf[end];
@@ -184,9 +184,13 @@ int main(int argc, char *argv[]) {
                             /* connection closed */
                             cout("INFO | Download completed\n");
                             char tmp[1024]={0};
-                            sprintf(tmp,"Register %d ",my_portno);
+                            char tmp2[128]={0};
+                            strcat(tmp,"Register ");
                             strcat(tmp,get_filename(fname));
-                            printf("filename to reg:%s\n",tmp);
+                            strcat(tmp," 127.0.0.1 ");
+                            sprintf(tmp2,"%d",my_portno);
+                            strcat(tmp,tmp2);
+                            printf("command %s\n",tmp);
                             if(write(lookup_sockfd,tmp,strlen(tmp)) <0){
                                 cout("ERROR | couldn\'t update lookup server\n");
                             }
@@ -235,7 +239,20 @@ int main(int argc, char *argv[]) {
                                     }
 
                                     if(buf[0]=='L' || buf[0]=='R'){
-                                        if((send(lookup_sockfd,buf, nbytes,0)) == -1)
+                                        char pstr[256]={0};
+                                        sprintf(pstr," 127.0.0.1 %d",my_portno);
+                                        int end;
+                                        int len=strlen(buf);
+                                        for(end=0;end<len;end++){
+                                            if(buf[end]=='\n')
+                                                break;
+                                        }
+                                        for(end;end<len;end++){
+                                            buf[end]='\0';
+                                        }
+                                        strcat(buf,pstr);
+
+                                        if((send(lookup_sockfd,buf, strlen(buf),0)) == -1)
                                             cout("ERROR | could not connect to Lookup server\n");
                                     }
                                     if(buf[0]=='D' && buf[1]=='i' && buf[2]=='s'){
