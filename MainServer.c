@@ -141,7 +141,7 @@ char* response(char* buf,struct client(*all_clients)[MAXCLIENTS]){
     if(buf[0] == 'L'){
         sscanf(buf,"%s %s %s %d",cmd,filename,ip,&port);
         char tmpmsg[512]={0};
-        sprintf(tmpmsg,"INFO | %s:%d is looking for %s\n",ip,port,filename);
+        sprintf(tmpmsg,"INFO | a client is looking for %s\n",filename);
         cout(tmpmsg);
         int res = find_best_server(filename,&(*all_clients));
         if(res == -1){
@@ -160,7 +160,6 @@ char* response(char* buf,struct client(*all_clients)[MAXCLIENTS]){
         char tmpmsg[512]={0};
         sprintf(tmpmsg,"INFO | %s:%d registred %s\n",ip,port,filename);
         cout(tmpmsg);
-        printf("filename:%s | port:%d\n",filename,port);
         add_file_to_client(port,filename,&(*all_clients));
         sprintf(answer,"SERVER RESP | successfully registered your file!\0");
     }
@@ -290,7 +289,7 @@ int main(int argc, char *argv[]) {
                             if(FD_ISSET(j, &master)) {
                                 /* except the listener and ourselves */
                                 if(j != listener && j == i) {
-                                    char resp[1024]="0";
+                                    char resp[1024]={0};
                                     sprintf(resp,"%s",response(buf,&all_clients));
 
                                     int end;

@@ -23,7 +23,7 @@
 
 int get_download_server(char* buf){
     int ans=0;
-    ans = (buf[9]-'0')*10000 + (buf[10]-'0')*1000 + (buf[11]-'0')*100 + (buf[12]-'0')*10 + (buf[13]-'0');
+    ans = (buf[19]-'0')*10000 + (buf[20]-'0')*1000 + (buf[21]-'0')*100 + (buf[22]-'0')*10 + (buf[23]-'0');
     return ans;
 }
 
@@ -41,10 +41,10 @@ char* get_filename(char* buf){
     int end=0;
     char filename[MAXFNLEN]={0};
 
-    for(end=15;end<strlen(buf);end++){
-        filename[end-15]=buf[end];
+    for(end=25;end<strlen(buf);end++){
+        filename[end-25]=buf[end];
         if(buf[end]=='\0' || buf[end]=='\n'){
-            filename[end-15]='\0';
+            filename[end-25]='\0';
             break;
         }
     }
@@ -190,7 +190,6 @@ int main(int argc, char *argv[]) {
                             strcat(tmp," 127.0.0.1 ");
                             sprintf(tmp2,"%d",my_portno);
                             strcat(tmp,tmp2);
-                            printf("command %s\n",tmp);
                             if(write(lookup_sockfd,tmp,strlen(tmp)) <0){
                                 cout("ERROR | couldn\'t update lookup server\n");
                             }
@@ -251,8 +250,9 @@ int main(int argc, char *argv[]) {
                                             buf[end]='\0';
                                         }
                                         strcat(buf,pstr);
-
-                                        if((send(lookup_sockfd,buf, strlen(buf),0)) == -1)
+                                        char final[1024]={0};
+                                        strcpy(final,buf);
+                                        if((send(lookup_sockfd,final, strlen(final),0)) == -1)
                                             cout("ERROR | could not connect to Lookup server\n");
                                     }
                                     if(buf[0]=='D' && buf[1]=='i' && buf[2]=='s'){
