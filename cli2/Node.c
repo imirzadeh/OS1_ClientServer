@@ -252,6 +252,7 @@ int main(int argc, char *argv[]) {
                                         strcat(buf,pstr);
                                         char final[1024]={0};
                                         strcpy(final,buf);
+                                        strcat(final,"\n");
                                         if((send(lookup_sockfd,final, strlen(final),0)) == -1)
                                             cout("ERROR | could not connect to Lookup server\n");
                                     }

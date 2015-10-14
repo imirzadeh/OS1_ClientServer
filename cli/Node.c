@@ -246,6 +246,7 @@ int main(int argc, char *argv[]) {
                                             if(buf[end]=='\n')
                                                 break;
                                         }
+                                        end++;
                                         for(end;end<len;end++){
                                             buf[end]='\0';
                                         }
