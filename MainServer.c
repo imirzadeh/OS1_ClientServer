@@ -261,16 +261,18 @@ int main(int argc, char *argv[]) {
                         if(newfd > fdmax) { /* keep track of the maximum */
                             fdmax = newfd;
                         }
-                        char tmp[1024];
+                        char tmp[1024]={0};
                         sprintf(tmp,"INFO | New connection from %s on socket %d\n", inet_ntoa(clientaddr.sin_addr), newfd);
                         cout(tmp);
                     }
                 }
                 else {
                     if((nbytes = recv(i, buf, sizeof(buf), 0)) <= 0) {
-                        if(nbytes == 0)
-                            cout("INFO | a client disconnected!\n");
-
+                        if(nbytes == 0){
+                            char tmp[1024]={0};
+                            sprintf(tmp,"INFO | a client from %s on socket %d disconnected!\n", inet_ntoa(clientaddr.sin_addr), newfd);
+                            cout(tmp);
+                        }
                         else{
                             cout("ERROR | recv() problem\n");
                         }
