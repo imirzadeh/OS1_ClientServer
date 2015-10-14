@@ -1,8 +1,3 @@
-// TODO :
-// server port is not dyanmic
-// server ip is not dynamic
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
